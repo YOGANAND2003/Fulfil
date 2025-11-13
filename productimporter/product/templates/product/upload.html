@@ -1,0 +1,417 @@
+{% extends 'product/base.html' %}
+
+{% block title %}Upload CSV - Product Importer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold text-primary mb-3">
+                <i class="fas fa-cloud-upload-alt me-3"></i>
+                CSV Product Importer
+            </h1>
+            <p class="lead text-muted">
+                Upload your CSV file containing up to 500,000 products with real-time progress tracking
+            </p>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-4">
+                    <i class="fas fa-file-csv me-2 text-primary"></i>
+                    Select CSV File
+                </h5>
+                
+                <!-- File Upload Zone -->
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="mb-3">Drag & Drop your CSV file here</h5>
+                        <p class="text-muted mb-3">or click to browse files</p>
+                        <input type="file" id="csvFile" accept=".csv" class="d-none">
+                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('csvFile').click()">
+                            <i class="fas fa-folder-open me-2"></i>
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- File Information -->
+                <div id="fileInfo" class="file-info d-none">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-1">
+                                <i class="fas fa-file-csv me-2 text-success"></i>
+                                <span id="fileName"></span>
+                            </h6>
+                            <small class="text-muted">
+                                Size: <span id="fileSize"></span> | 
+                                Rows: <span id="fileRows">Calculating...</span>
+                            </small>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <button type="button" class="btn btn-primary" id="uploadBtn" disabled>
+                                <i class="fas fa-upload me-2"></i>
+                                Upload & Process
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Requirements -->
+                <div class="mt-4">
+                    <h6 class="text-muted mb-3">CSV Requirements:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Required columns: SKU, Name, Price</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Optional: Description</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Maximum file size: 100MB</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-info text-primary me-2"></i>SKU must be unique (case-insensitive)</li>
+                                <li><i class="fas fa-info text-primary me-2"></i>Duplicates will be overwritten</li>
+                                <li><i class="fas fa-info text-primary me-2"></i>Products default to active status</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="card d-none">
+            <div class="card-body">
+                <h5 class="card-title mb-4">
+                    <i class="fas fa-tasks me-2 text-primary"></i>
+                    Import Progress
+                </h5>
+
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Processing...</span>
+                        <span class="fw-bold" id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Status Information -->
+                <div class="row" id="statusInfo">
+                    <div class="col-md-3">
+                        <div class="stats-card info">
+                            <h4 class="mb-1" id="totalRows">0</h4>
+                            <small class="text-muted">Total Rows</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card info">
+                            <h4 class="mb-1" id="processedRows">0</h4>
+                            <small class="text-muted">Processed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card success">
+                            <h4 class="mb-1" id="successCount">0</h4>
+                            <small class="text-muted">Success</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card warning">
+                            <h4 class="mb-1" id="errorCount">0</h4>
+                            <small class="text-muted">Errors</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Message -->
+                <div class="mt-3">
+                    <div class="alert alert-info" id="statusMessage">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="statusText">Preparing to process file...</span>
+                    </div>
+                </div>
+
+                <!-- Error Log -->
+                <div id="errorLogSection" class="d-none">
+                    <h6 class="text-danger mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error Details
+                    </h6>
+                    <div class="alert alert-danger">
+                        <pre id="errorLog" class="mb-0" style="white-space: pre-wrap; font-size: 0.875rem;"></pre>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-4 text-center" id="actionButtons" style="display: none;">
+                    <button type="button" class="btn btn-success me-3" onclick="window.location.href='{% url 'product:product_list' %}'">
+                        <i class="fas fa-list me-2"></i>
+                        View Products
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-redo me-2"></i>
+                        Upload Another File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadZone = document.getElementById('uploadZone');
+    const csvFile = document.getElementById('csvFile');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileRows = document.getElementById('fileRows');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progressSection = document.getElementById('progressSection');
+    
+    let selectedFile = null;
+    let currentSessionId = null;
+    let progressInterval = null;
+
+    // Drag and drop functionality
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelection(files[0]);
+        }
+    });
+
+    // File input change
+    csvFile.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelection(e.target.files[0]);
+        }
+    });
+
+    // Upload button click
+    uploadBtn.addEventListener('click', function() {
+        if (selectedFile) {
+            uploadFile(selectedFile);
+        }
+    });
+
+    function handleFileSelection(file) {
+        // Validate file type
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            showAlert('Please select a CSV file.', 'danger');
+            return;
+        }
+
+        // Validate file size (100MB)
+        if (file.size > 100 * 1024 * 1024) {
+            showAlert('File size too large. Maximum 100MB allowed.', 'danger');
+            return;
+        }
+
+        selectedFile = file;
+        
+        // Update file info
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        
+        // Show file info
+        fileInfo.classList.remove('d-none');
+        uploadBtn.disabled = false;
+
+        // Count rows in background
+        countCSVRows(file);
+    }
+
+    function countCSVRows(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const rowCount = Math.max(0, lines.length - 1); // Subtract header
+            fileRows.textContent = rowCount.toLocaleString();
+        };
+        reader.readAsText(file);
+    }
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('csv_file', file);
+
+        // Show progress section
+        progressSection.classList.remove('d-none');
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+
+        fetch('{% url "product:upload_csv" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentSessionId = data.session_id;
+                document.getElementById('totalRows').textContent = data.total_rows.toLocaleString();
+                startProgressTracking();
+            } else {
+                showAlert(data.error || 'Upload failed', 'danger');
+                resetUploadState();
+            }
+        })
+        .catch(error => {
+            console.error('Upload error:', error);
+            showAlert('Upload failed. Please try again.', 'danger');
+            resetUploadState();
+        });
+    }
+
+    function startProgressTracking() {
+        updateStatus('Processing file...', 'info');
+        
+        progressInterval = setInterval(function() {
+            if (currentSessionId) {
+                fetch(`{% url "product:get_progress" session_id="PLACEHOLDER" %}`.replace('PLACEHOLDER', currentSessionId))
+                .then(response => response.json())
+                .then(data => {
+                    updateProgress(data);
+                })
+                .catch(error => {
+                    console.error('Progress tracking error:', error);
+                });
+            }
+        }, 1000); // Update every second
+    }
+
+    function updateProgress(data) {
+        // Update progress bar
+        const percentage = data.progress_percentage || 0;
+        document.getElementById('progressPercent').textContent = percentage.toFixed(1) + '%';
+        document.getElementById('progressBar').style.width = percentage + '%';
+
+        // Update counters
+        document.getElementById('processedRows').textContent = (data.processed_rows || 0).toLocaleString();
+        document.getElementById('successCount').textContent = (data.success_count || 0).toLocaleString();
+        document.getElementById('errorCount').textContent = (data.error_count || 0).toLocaleString();
+
+        // Update status based on current state
+        if (data.status === 'processing') {
+            updateStatus(`Processing... ${data.processed_rows || 0} of ${data.total_rows || 0} rows`, 'info');
+        } else if (data.status === 'completed') {
+            clearInterval(progressInterval);
+            updateStatus('Import completed successfully!', 'success');
+            document.getElementById('actionButtons').style.display = 'block';
+            
+            if (data.error_count > 0 && data.error_log) {
+                showErrorLog(data.error_log);
+            }
+        } else if (data.status === 'failed') {
+            clearInterval(progressInterval);
+            updateStatus('Import failed. Please check the error details below.', 'danger');
+            
+            if (data.error_log) {
+                showErrorLog(data.error_log);
+            }
+        }
+    }
+
+    function updateStatus(message, type) {
+        const statusMessage = document.getElementById('statusMessage');
+        const statusText = document.getElementById('statusText');
+        
+        statusMessage.className = `alert alert-${type}`;
+        statusText.textContent = message;
+        
+        // Update icon based on type
+        const icon = statusMessage.querySelector('i');
+        icon.className = type === 'success' ? 'fas fa-check-circle me-2' :
+                        type === 'danger' ? 'fas fa-exclamation-triangle me-2' :
+                        'fas fa-info-circle me-2';
+    }
+
+    function showErrorLog(errorLog) {
+        document.getElementById('errorLog').textContent = errorLog;
+        document.getElementById('errorLogSection').classList.remove('d-none');
+    }
+
+    function resetUploadState() {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload & Process';
+        progressSection.classList.add('d-none');
+        
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+    }
+
+    function showAlert(message, type) {
+        // Create and show bootstrap alert
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at top of container
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

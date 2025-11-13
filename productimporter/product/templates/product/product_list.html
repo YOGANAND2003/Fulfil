@@ -1,0 +1,230 @@
+{% extends 'product/base.html' %}
+
+{% block title %}Products - Product Importer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="display-6 fw-bold text-primary mb-2">
+                    <i class="fas fa-boxes me-3"></i>
+                    Product Catalog
+                </h1>
+                <p class="text-muted mb-0">
+                    Total Products: <span class="fw-bold">{{ total_products|default:0 }}</span>
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'product:upload_page' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>
+                    Import More Products
+                </a>
+            </div>
+        </div>
+
+        {% if page_obj.object_list %}
+            <!-- Products Table -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 15%;">
+                                        <i class="fas fa-barcode me-2"></i>SKU
+                                    </th>
+                                    <th scope="col" style="width: 30%;">
+                                        <i class="fas fa-tag me-2"></i>Product Name
+                                    </th>
+                                    <th scope="col" style="width: 15%;">
+                                        <i class="fas fa-dollar-sign me-2"></i>Price
+                                    </th>
+                                    <th scope="col" style="width: 25%;">
+                                        <i class="fas fa-align-left me-2"></i>Description
+                                    </th>
+                                    <th scope="col" style="width: 10%;">
+                                        <i class="fas fa-toggle-on me-2"></i>Status
+                                    </th>
+                                    <th scope="col" style="width: 15%;">
+                                        <i class="fas fa-clock me-2"></i>Updated
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in page_obj %}
+                                <tr>
+                                    <td>
+                                        <code class="text-primary fw-bold">{{ product.sku }}</code>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ product.name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-success">${{ product.price }}</span>
+                                    </td>
+                                    <td>
+                                        {% if product.description %}
+                                            <div class="text-truncate" style="max-width: 200px;" title="{{ product.description }}">
+                                                {{ product.description }}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">No description</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if product.active %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Active
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-times me-1"></i>Inactive
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ product.updated_at|date:"M d, Y" }}<br>
+                                            {{ product.updated_at|time:"H:i" }}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Product pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+            <!-- Pagination Info -->
+            <div class="text-center text-muted mt-3">
+                <small>
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} 
+                    of {{ page_obj.paginator.count }} products
+                </small>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-box-open fa-4x text-muted"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Products Found</h4>
+                    <p class="text-muted mb-4">
+                        You haven't imported any products yet. Upload a CSV file to get started.
+                    </p>
+                    <a href="{% url 'product:upload_page' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-upload me-2"></i>
+                        Import Products
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Stats -->
+{% if page_obj.object_list %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="stats-card success">
+            <h4 class="mb-1">{{ total_products|default:0 }}</h4>
+            <small class="text-muted">Total Products</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card info">
+            <h4 class="mb-1">{{ page_obj.paginator.num_pages|default:0 }}</h4>
+            <small class="text-muted">Total Pages</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card info">
+            <h4 class="mb-1">50</h4>
+            <small class="text-muted">Per Page</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card warning">
+            <h4 class="mb-1">{{ page_obj.number|default:1 }}</h4>
+            <small class="text-muted">Current Page</small>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add tooltips to truncated descriptions
+    const truncatedElements = document.querySelectorAll('.text-truncate[title]');
+    truncatedElements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            // You can add custom tooltip logic here if needed
+        });
+    });
+
+    // Add smooth scrolling for pagination
+    const paginationLinks = document.querySelectorAll('.pagination .page-link');
+    paginationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            // Add loading state
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.className = 'fas fa-spinner fa-spin';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
