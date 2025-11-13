@@ -2,22 +2,231 @@
 
 {% block title %}Upload CSV - Product Importer{% endblock %}
 
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.05));
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(79, 70, 229, 0.05) 0%, transparent 70%);
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .upload-card {
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95)) !important;
+        border: 1px solid rgba(79, 70, 229, 0.1);
+        transition: all 0.3s ease;
+        color: var(--dark-text) !important;
+    }
+
+    .upload-card:hover {
+        border-color: rgba(79, 70, 229, 0.2);
+        box-shadow: 0 12px 40px rgba(79, 70, 229, 0.1);
+    }
+
+    .requirements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .requirement-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(248,250,252,0.8));
+        border-radius: 12px;
+        border-left: 4px solid var(--success-color);
+        transition: all 0.3s ease;
+    }
+
+    .requirement-item:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 15px rgba(5, 150, 105, 0.15);
+    }
+
+    .requirement-item.info {
+        border-left-color: var(--info-color);
+    }
+
+    .requirement-item.info:hover {
+        box-shadow: 0 4px 15px rgba(2, 132, 199, 0.15);
+    }
+
+    .progress-card {
+        background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98)) !important;
+        border: 1px solid rgba(79, 70, 229, 0.15);
+        backdrop-filter: blur(10px);
+        color: var(--dark-text) !important;
+    }
+
+    .stats-card {
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .progress {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        transition: width 0.6s ease, background-color 0.3s ease;
+        border-radius: 10px;
+    }
+
+    .upload-icon {
+        font-size: 3.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-10px); }
+        60% { transform: translateY(-5px); }
+    }
+
+    .feature-highlight {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+
+    .upload-zone-enhanced {
+        position: relative;
+        z-index: 1;
+    }
+
+    .upload-zone-enhanced::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 30%, rgba(79, 70, 229, 0.03) 50%, transparent 70%);
+        border-radius: 20px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .upload-zone-enhanced:hover::after {
+        opacity: 1;
+    }
+
+    .upload-zone {
+        border: 2px dashed #e2e8f0;
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: rgba(248, 250, 252, 0.5);
+    }
+
+    .upload-zone:hover {
+        border-color: var(--primary-color);
+        background: rgba(79, 70, 229, 0.05);
+    }
+
+    .upload-zone.dragover {
+        border-color: var(--success-color);
+        background: rgba(16, 185, 129, 0.1);
+        transform: scale(1.02);
+    }
+
+    .upload-content {
+        pointer-events: none;
+    }
+
+    .upload-content .btn {
+        pointer-events: all;
+    }
+
+    .upload-zone.file-selected {
+        cursor: default !important;
+        border-color: var(--success-color) !important;
+        background: rgba(16, 185, 129, 0.05) !important;
+    }
+
+    .upload-zone.file-selected:hover {
+        border-color: var(--success-color) !important;
+        background: rgba(16, 185, 129, 0.05) !important;
+        transform: none !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <!-- Header -->
-        <div class="text-center mb-5">
-            <h1 class="display-5 fw-bold text-primary mb-3">
-                <i class="fas fa-cloud-upload-alt me-3"></i>
-                CSV Product Importer
-            </h1>
-            <p class="lead text-muted">
-                Upload your CSV file containing up to 500,000 products with real-time progress tracking
-            </p>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-content text-center">
+                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                <h1 class="display-4 fw-bold mb-3" style="background: linear-gradient(135deg, var(--primary-color), #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    CSV Product Importer
+                </h1>
+                <p class="lead text-muted mb-4">
+                    Upload your CSV file containing up to 500,000 products with real-time progress tracking
+                </p>
+                <div class="feature-highlight">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <i class="fas fa-bolt text-success mb-2" style="font-size: 1.5rem;"></i>
+                            <div class="fw-bold">Lightning Fast</div>
+                            <small class="text-muted">Batch processing</small>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-shield-alt text-primary mb-2" style="font-size: 1.5rem;"></i>
+                            <div class="fw-bold">Secure Upload</div>
+                            <small class="text-muted">Protected transfers</small>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-chart-line text-warning mb-2" style="font-size: 1.5rem;"></i>
+                            <div class="fw-bold">Real-time Progress</div>
+                            <small class="text-muted">Live tracking</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Upload Form -->
-        <div class="card mb-4">
+        <div class="card upload-card mb-4">
             <div class="card-body">
                 <h5 class="card-title mb-4">
                     <i class="fas fa-file-csv me-2 text-primary"></i>
@@ -25,13 +234,13 @@
                 </h5>
                 
                 <!-- File Upload Zone -->
-                <div class="upload-zone" id="uploadZone">
+                <div class="upload-zone upload-zone-enhanced" id="uploadZone" style="cursor: pointer;">
                     <div class="upload-content">
                         <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                         <h5 class="mb-3">Drag & Drop your CSV file here</h5>
-                        <p class="text-muted mb-3">or click to browse files</p>
+                        <p class="text-muted mb-3">or click anywhere to browse files</p>
                         <input type="file" id="csvFile" accept=".csv" class="d-none">
-                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('csvFile').click()">
+                        <button type="button" class="btn btn-outline-primary" id="chooseFileBtn">
                             <i class="fas fa-folder-open me-2"></i>
                             Choose File
                         </button>
@@ -63,20 +272,48 @@
                 <!-- Requirements -->
                 <div class="mt-4">
                     <h6 class="text-muted mb-3">CSV Requirements:</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-check text-success me-2"></i>Required columns: SKU, Name, Price</li>
-                                <li><i class="fas fa-check text-success me-2"></i>Optional: Description</li>
-                                <li><i class="fas fa-check text-success me-2"></i>Maximum file size: 100MB</li>
-                            </ul>
+                    <div class="requirements-grid">
+                        <div class="requirement-item">
+                            <i class="fas fa-check text-success me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <div class="fw-bold">Required columns</div>
+                                <small class="text-muted">SKU, Name, Price</small>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-info text-primary me-2"></i>SKU must be unique (case-insensitive)</li>
-                                <li><i class="fas fa-info text-primary me-2"></i>Duplicates will be overwritten</li>
-                                <li><i class="fas fa-info text-primary me-2"></i>Products default to active status</li>
-                            </ul>
+                        <div class="requirement-item">
+                            <i class="fas fa-check text-success me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <div class="fw-bold">Optional column</div>
+                                <small class="text-muted">Description</small>
+                            </div>
+                        </div>
+                        <div class="requirement-item">
+                            <i class="fas fa-check text-success me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <div class="fw-bold">Maximum file size</div>
+                                <small class="text-muted">100MB limit</small>
+                            </div>
+                        </div>
+                        <div class="requirement-item info">
+                            <i class="fas fa-info text-primary me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <div class="fw-bold">Unique SKU</div>
+                                <small class="text-muted">Case-insensitive</small>
+                            </div>
+                        </div>
+                        <div class="requirement-item info">
+                            <i class="fas fa-info text-primary me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <div class="fw-bold">Duplicate handling</div>
+                                <small class="text-muted">Auto overwrite</small>
+                            </div>
+                        </div>
+                        <div class="requirement-item info">
+                            <i class="fas fa-info text-primary me-3" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <div class="fw-bold">Default status</div>
+                                <small class="text-muted">Products active</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -84,7 +321,7 @@
         </div>
 
         <!-- Progress Section -->
-        <div id="progressSection" class="card d-none">
+        <div id="progressSection" class="card progress-card d-none">
             <div class="card-body">
                 <h5 class="card-title mb-4">
                     <i class="fas fa-tasks me-2 text-primary"></i>
@@ -93,39 +330,51 @@
 
                 <!-- Progress Bar -->
                 <div class="mb-4">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Processing...</span>
-                        <span class="fw-bold" id="progressPercent">0%</span>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted fw-medium">Processing your file...</span>
+                        <span class="fw-bold text-primary" id="progressPercent" style="font-size: 1.1rem;">0%</span>
                     </div>
-                    <div class="progress">
+                    <div class="progress" style="height: 16px;">
                         <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
                     </div>
                 </div>
 
                 <!-- Status Information -->
-                <div class="row" id="statusInfo">
+                <div class="row g-3" id="statusInfo">
                     <div class="col-md-3">
-                        <div class="stats-card info">
-                            <h4 class="mb-1" id="totalRows">0</h4>
-                            <small class="text-muted">Total Rows</small>
+                        <div class="stats-card bg-light border rounded-3 p-3 text-center">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-list-ol text-primary me-2" style="font-size: 1.2rem;"></i>
+                                <small class="text-muted fw-medium">Total Rows</small>
+                            </div>
+                            <h3 class="mb-0 fw-bold text-primary" id="totalRows">0</h3>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="stats-card info">
-                            <h4 class="mb-1" id="processedRows">0</h4>
-                            <small class="text-muted">Processed</small>
+                        <div class="stats-card bg-light border rounded-3 p-3 text-center">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-cogs text-info me-2" style="font-size: 1.2rem;"></i>
+                                <small class="text-muted fw-medium">Processed</small>
+                            </div>
+                            <h3 class="mb-0 fw-bold text-info" id="processedRows">0</h3>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="stats-card success">
-                            <h4 class="mb-1" id="successCount">0</h4>
-                            <small class="text-muted">Success</small>
+                        <div class="stats-card bg-light border rounded-3 p-3 text-center">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-check-circle text-success me-2" style="font-size: 1.2rem;"></i>
+                                <small class="text-muted fw-medium">Success</small>
+                            </div>
+                            <h3 class="mb-0 fw-bold text-success" id="successCount">0</h3>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="stats-card warning">
-                            <h4 class="mb-1" id="errorCount">0</h4>
-                            <small class="text-muted">Errors</small>
+                        <div class="stats-card bg-light border rounded-3 p-3 text-center">
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <i class="fas fa-exclamation-triangle text-warning me-2" style="font-size: 1.2rem;"></i>
+                                <small class="text-muted fw-medium">Errors</small>
+                            </div>
+                            <h3 class="mb-0 fw-bold text-warning" id="errorCount">0</h3>
                         </div>
                     </div>
                 </div>
@@ -171,6 +420,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const uploadZone = document.getElementById('uploadZone');
     const csvFile = document.getElementById('csvFile');
+    const chooseFileBtn = document.getElementById('chooseFileBtn');
     const fileInfo = document.getElementById('fileInfo');
     const fileName = document.getElementById('fileName');
     const fileSize = document.getElementById('fileSize');
@@ -203,6 +453,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Choose file button click handler
+    chooseFileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        csvFile.click();
+    });
+
+    // Upload zone click handler (but not when file is already selected)
+    uploadZone.addEventListener('click', function(e) {
+        // Only trigger if not clicking the button directly and no file selected
+        if (!e.target.closest('button') && !selectedFile) {
+            csvFile.click();
+        }
+    });
+
     // File input change
     csvFile.addEventListener('change', function(e) {
         if (e.target.files.length > 0) {
@@ -221,12 +485,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validate file type
         if (!file.name.toLowerCase().endsWith('.csv')) {
             showAlert('Please select a CSV file.', 'danger');
+            selectedFile = null;
+            csvFile.value = ''; // Clear the input
             return;
         }
 
         // Validate file size (100MB)
         if (file.size > 100 * 1024 * 1024) {
             showAlert('File size too large. Maximum 100MB allowed.', 'danger');
+            selectedFile = null;
+            csvFile.value = ''; // Clear the input
             return;
         }
 
@@ -236,9 +504,15 @@ document.addEventListener('DOMContentLoaded', function() {
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
         
-        // Show file info
+        // Show file info and hide upload zone interaction
         fileInfo.classList.remove('d-none');
         uploadBtn.disabled = false;
+        
+        // Update upload zone to show file is selected
+        uploadZone.classList.add('file-selected');
+        
+        // Update choose button text
+        chooseFileBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Change File';
 
         // Count rows in background
         countCSVRows(file);
@@ -291,17 +565,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startProgressTracking() {
         updateStatus('Processing file...', 'info');
+        let attemptCount = 0;
+        const maxAttempts = 300; // 5 minutes maximum (300 seconds)
         
         progressInterval = setInterval(function() {
+            attemptCount++;
+            
+            // Safety timeout after 5 minutes
+            if (attemptCount > maxAttempts) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+                currentSessionId = null;
+                updateStatus('Upload timeout. Please try again with a smaller file.', 'warning');
+                resetUploadButton();
+                return;
+            }
+            
             if (currentSessionId) {
                 fetch(`{% url "product:get_progress" session_id="PLACEHOLDER" %}`.replace('PLACEHOLDER', currentSessionId))
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     updateProgress(data);
                 })
                 .catch(error => {
                     console.error('Progress tracking error:', error);
+                    // Don't stop on single error, but count failed attempts
+                    if (attemptCount % 10 === 0) { // Every 10 seconds, show warning
+                        console.warn('Progress tracking having issues, attempt:', attemptCount);
+                    }
                 });
+            } else {
+                // No session ID, stop tracking
+                clearInterval(progressInterval);
+                progressInterval = null;
             }
         }, 1000); // Update every second
     }
@@ -310,27 +611,64 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update progress bar
         const percentage = data.progress_percentage || 0;
         document.getElementById('progressPercent').textContent = percentage.toFixed(1) + '%';
-        document.getElementById('progressBar').style.width = percentage + '%';
+        
+        // Update progress bar with color coding
+        const progressBar = document.getElementById('progressBar');
+        progressBar.style.width = percentage + '%';
+        
+        // Change progress bar color based on completion
+        if (percentage >= 100) {
+            progressBar.className = 'progress-bar bg-success';
+        } else if (percentage >= 75) {
+            progressBar.className = 'progress-bar bg-info';
+        } else {
+            progressBar.className = 'progress-bar bg-primary';
+        }
 
-        // Update counters
+        // Update counters with better formatting
         document.getElementById('processedRows').textContent = (data.processed_rows || 0).toLocaleString();
         document.getElementById('successCount').textContent = (data.success_count || 0).toLocaleString();
         document.getElementById('errorCount').textContent = (data.error_count || 0).toLocaleString();
 
         // Update status based on current state
         if (data.status === 'processing') {
-            updateStatus(`Processing... ${data.processed_rows || 0} of ${data.total_rows || 0} rows`, 'info');
+            updateStatus(`Processing... ${(data.processed_rows || 0).toLocaleString()} of ${(data.total_rows || 0).toLocaleString()} rows`, 'info');
         } else if (data.status === 'completed') {
+            // Stop the progress tracking
             clearInterval(progressInterval);
+            progressInterval = null;
+            currentSessionId = null;
+            
+            // Update final status
             updateStatus('Import completed successfully!', 'success');
+            
+            // Update progress to 100% and change color
+            document.getElementById('progressPercent').textContent = '100%';
+            progressBar.style.width = '100%';
+            progressBar.className = 'progress-bar bg-success';
+            
+            // Show action buttons
             document.getElementById('actionButtons').style.display = 'block';
+            
+            // Reset upload button
+            resetUploadButton();
             
             if (data.error_count > 0 && data.error_log) {
                 showErrorLog(data.error_log);
             }
         } else if (data.status === 'failed') {
+            // Stop the progress tracking
             clearInterval(progressInterval);
+            progressInterval = null;
+            currentSessionId = null;
+            
             updateStatus('Import failed. Please check the error details below.', 'danger');
+            
+            // Change progress bar to danger color
+            progressBar.className = 'progress-bar bg-danger';
+            
+            // Reset upload button
+            resetUploadButton();
             
             if (data.error_log) {
                 showErrorLog(data.error_log);
@@ -366,6 +704,30 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(progressInterval);
             progressInterval = null;
         }
+        
+        // Clear session and file selection
+        currentSessionId = null;
+        resetFileSelection();
+    }
+
+    function resetUploadButton() {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload & Process';
+    }
+
+    function resetFileSelection() {
+        selectedFile = null;
+        csvFile.value = '';
+        fileInfo.classList.add('d-none');
+        
+        // Reset upload zone appearance
+        uploadZone.classList.remove('file-selected');
+        
+        // Reset choose button
+        chooseFileBtn.innerHTML = '<i class="fas fa-folder-open me-2"></i>Choose File';
+        
+        // Disable upload button
+        uploadBtn.disabled = true;
     }
 
     function showAlert(message, type) {

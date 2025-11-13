@@ -2,33 +2,111 @@
 
 {% block title %}Products - Product Importer{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stats-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        background: var(--success-color);
+    }
+
+    .stats-indicator.info {
+        background: var(--primary-color);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-card {
+        background: white !important;
+        border: 1px solid #e2e8f0;
+        color: var(--dark-text) !important;
+    }
+
+    .product-row {
+        border-left: 4px solid transparent;
+    }
+
+    .product-row:hover {
+        border-left-color: var(--primary-color);
+        background-color: #f8fafc;
+    }
+
+    .product-row.selected {
+        border-left-color: var(--success-color);
+        background-color: #f0fdf4;
+    }
+
+    .btn-group .btn {
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+
+    .empty-state {
+        padding: 4rem 2rem;
+        text-align: center;
+        background: white !important;
+        color: var(--dark-text) !important;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--muted-text);
+        margin-bottom: 2rem;
+        opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+        .action-buttons {
+            justify-content: center;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-5">
             <div>
-                <h1 class="display-6 fw-bold text-primary mb-2">
-                    <i class="fas fa-boxes me-3"></i>
+                <h1 class="display-5 fw-bold mb-3" style="background: linear-gradient(135deg, var(--primary-color), #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    <i class="fas fa-boxes me-3" style="color: var(--primary-color);"></i>
                     Product Catalog
                 </h1>
-                <p class="text-muted mb-0">
-                    Total Products: <span class="fw-bold">{{ total_products|default:0 }}</span>
+                <div class="d-flex align-items-center gap-4">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-indicator success me-2"></div>
+                        <span class="text-muted">Total: <span class="fw-bold text-dark">{{ total_products|default:0 }}</span></span>
+                    </div>
                     {% if filtered_count != total_products %}
-                        | Filtered: <span class="fw-bold">{{ filtered_count|default:0 }}</span>
+                        <div class="d-flex align-items-center">
+                            <div class="stats-indicator info me-2"></div>
+                            <span class="text-muted">Filtered: <span class="fw-bold text-dark">{{ filtered_count|default:0 }}</span></span>
+                        </div>
                     {% endif %}
-                </p>
+                </div>
             </div>
-            <div>
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#createProductModal">
+            <div class="action-buttons">
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createProductModal">
                     <i class="fas fa-plus me-2"></i>
                     Add Product
                 </button>
-                <button type="button" class="btn btn-warning me-2" id="deleteSelectedBtn" onclick="confirmDeleteSelected()" disabled>
+                <button type="button" class="btn btn-warning" id="deleteSelectedBtn" onclick="confirmDeleteSelected()" disabled>
                     <i class="fas fa-trash me-2"></i>
                     Delete Selected (<span id="selectedCount">0</span>)
                 </button>
-                <button type="button" class="btn btn-danger me-2" onclick="confirmBulkDelete()">
+                <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">
                     <i class="fas fa-trash-alt me-2"></i>
                     Delete All
                 </button>
@@ -40,7 +118,7 @@
         </div>
 
         <!-- Filters -->
-        <div class="card mb-4">
+        <div class="card filter-card mb-4">
             <div class="card-body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-6">
@@ -109,11 +187,11 @@
                             </thead>
                             <tbody>
                                 {% for product in page_obj %}
-                                <tr>
+                                <tr class="product-row">
                                     <td>
                                         <div class="form-check">
                                             <input class="form-check-input product-checkbox" type="checkbox" 
-                                                   value="{{ product.id }}" onchange="updateSelectedCount()">
+                                                   value="{{ product.id }}" onchange="updateSelectedCount(); toggleRowSelection(this)">
                                         </div>
                                     </td>
                                     <td>
@@ -225,20 +303,91 @@
             {% endif %}
 
         {% else %}
-            <!-- Empty State -->
+            <!-- Enhanced Empty State -->
             <div class="card">
-                <div class="card-body text-center py-5">
-                    <div class="mb-4">
-                        <i class="fas fa-box-open fa-4x text-muted"></i>
-                    </div>
-                    <h4 class="text-muted mb-3">No Products Found</h4>
-                    <p class="text-muted mb-4">
-                        You haven't imported any products yet. Upload a CSV file to get started.
-                    </p>
-                    <a href="{% url 'product:upload_page' %}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-upload me-2"></i>
-                        Import Products
-                    </a>
+                <div class="card-body empty-state">
+                    {% if search_query or status_filter %}
+                        <!-- No Search Results -->
+                        <div class="mb-4">
+                            <i class="fas fa-search text-warning" style="font-size: 4rem; opacity: 0.7;"></i>
+                        </div>
+                        <h3 class="text-dark mb-3">No Products Match Your Search</h3>
+                        <div class="alert alert-info mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Current Filters:</strong>
+                                    {% if search_query %}
+                                        <br><i class="fas fa-search me-1"></i> Search: "{{ search_query }}"
+                                    {% endif %}
+                                    {% if status_filter %}
+                                        <br><i class="fas fa-filter me-1"></i> Status: {{ status_filter|title }}
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Suggestions:</strong>
+                                    <br>• Try different keywords
+                                    <br>• Check spelling
+                                    <br>• Use broader search terms
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <a href="{% url 'product:product_list' %}" class="btn btn-outline-primary btn-lg">
+                                <i class="fas fa-times me-2"></i>
+                                Clear All Filters
+                            </a>
+                            <button type="button" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#createProductModal">
+                                <i class="fas fa-plus me-2"></i>
+                                Add New Product
+                            </button>
+                            <a href="{% url 'product:upload_page' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload me-2"></i>
+                                Import More
+                            </a>
+                        </div>
+                    {% else %}
+                        <!-- No Products at All -->
+                        <div class="mb-4">
+                            <i class="fas fa-box-open text-primary" style="font-size: 4rem; opacity: 0.7;"></i>
+                        </div>
+                        <h3 class="text-dark mb-3">Welcome to Product Manager!</h3>
+                        <p class="text-muted mb-4 lead">
+                            You haven't imported any products yet. Get started by uploading a CSV file or adding products manually.
+                        </p>
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="text-center p-3">
+                                    <i class="fas fa-upload text-primary mb-2" style="font-size: 2rem;"></i>
+                                    <h6>Bulk Import</h6>
+                                    <small class="text-muted">Upload CSV with thousands of products</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center p-3">
+                                    <i class="fas fa-plus text-success mb-2" style="font-size: 2rem;"></i>
+                                    <h6>Add Manually</h6>
+                                    <small class="text-muted">Create products one by one</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center p-3">
+                                    <i class="fas fa-link text-info mb-2" style="font-size: 2rem;"></i>
+                                    <h6>Setup Webhooks</h6>
+                                    <small class="text-muted">Configure notifications</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <a href="{% url 'product:upload_page' %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload me-2"></i>
+                                Import CSV File
+                            </a>
+                            <button type="button" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#createProductModal">
+                                <i class="fas fa-plus me-2"></i>
+                                Add First Product
+                            </button>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         {% endif %}
@@ -425,6 +574,40 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Single Product Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="deleteProductModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete Product
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <p>Are you sure you want to delete this product?</p>
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Product Details:</h6>
+                        <p class="mb-1"><strong>SKU:</strong> <span id="deleteProductSku"></span></p>
+                        <p class="mb-0"><strong>Name:</strong> <span id="deleteProductName"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="clearCurrentProduct()">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="executeDeleteProduct()">
+                    <i class="fas fa-trash me-2"></i>Yes, Delete Product
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -512,6 +695,51 @@ function updateSelectedCount() {
     }
 }
 
+function toggleRowSelection(checkbox) {
+    const row = checkbox.closest('.product-row');
+    if (checkbox.checked) {
+        row.classList.add('selected');
+    } else {
+        row.classList.remove('selected');
+    }
+}
+
+// Update product row in UI without reloading
+function updateProductRowInUI(productId, productData) {
+    const row = document.querySelector(`button[onclick="editProduct(${productId})"]`).closest('tr');
+    const cells = row.querySelectorAll('td');
+    
+    // Update SKU (cell index 1)
+    cells[1].querySelector('code').textContent = productData.sku;
+    
+    // Update Name (cell index 2)
+    cells[2].querySelector('div').textContent = productData.name;
+    
+    // Update Price (cell index 3)
+    cells[3].querySelector('span').textContent = '$' + productData.price;
+    
+    // Update Description (cell index 4)
+    if (productData.description && productData.description.trim()) {
+        cells[4].innerHTML = `<div class="text-truncate" style="max-width: 200px;" title="${productData.description}">${productData.description}</div>`;
+    } else {
+        cells[4].innerHTML = '<span class="text-muted fst-italic">No description</span>';
+    }
+    
+    // Update Active Status (cell index 5)
+    const statusCell = cells[5];
+    if (productData.active) {
+        statusCell.innerHTML = '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Active</span>';
+    } else {
+        statusCell.innerHTML = '<span class="badge bg-secondary"><i class="fas fa-times me-1"></i>Inactive</span>';
+    }
+    
+    // Add a brief highlight effect to show the row was updated
+    row.style.backgroundColor = '#d4edda';
+    setTimeout(() => {
+        row.style.backgroundColor = '';
+    }, 2000);
+}
+
 // Create Product
 function createProduct() {
     const sku = document.getElementById('createSku').value.trim();
@@ -544,9 +772,11 @@ function createProduct() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('Product created successfully!', 'success');
+            showAlert('Product created successfully! Refresh the page to see the new product.', 'success');
             bootstrap.Modal.getInstance(document.getElementById('createProductModal')).hide();
-            setTimeout(() => location.reload(), 1000);
+            // Clear the form
+            document.getElementById('createProductForm').reset();
+            document.getElementById('createActive').checked = true;
         } else {
             showAlert(data.error || 'Error creating product', 'danger');
         }
@@ -563,11 +793,12 @@ function editProduct(productId) {
     const row = document.querySelector(`button[onclick="editProduct(${productId})"]`).closest('tr');
     const cells = row.querySelectorAll('td');
     
-    const sku = cells[0].querySelector('code').textContent;
-    const name = cells[1].querySelector('div').textContent;
-    const price = cells[2].querySelector('span').textContent.replace('$', '');
-    const description = cells[3].textContent.trim();
-    const active = cells[4].querySelector('.badge').classList.contains('bg-success');
+    // Adjusted indices for checkbox column (checkbox is index 0, so data starts at index 1)
+    const sku = cells[1].querySelector('code').textContent;
+    const name = cells[2].querySelector('div').textContent;
+    const price = cells[3].querySelector('span').textContent.replace('$', '');
+    const description = cells[4].textContent.trim();
+    const active = cells[5].querySelector('.badge').classList.contains('bg-success');
 
     // Populate edit form
     document.getElementById('editProductId').value = productId;
@@ -616,7 +847,9 @@ function updateProduct() {
         if (data.success) {
             showAlert('Product updated successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
-            setTimeout(() => location.reload(), 1000);
+            
+            // Update the UI immediately without reloading
+            updateProductRowInUI(productId, data.product);
         } else {
             showAlert(data.error || 'Error updating product', 'danger');
         }
@@ -628,28 +861,75 @@ function updateProduct() {
 }
 
 // Delete Product
+// Variable to store current product being deleted
+let currentProductToDelete = null;
+
 function deleteProduct(productId, sku) {
-    if (confirm(`Are you sure you want to delete product "${sku}"? This action cannot be undone.`)) {
-        fetch(`{% url "product:delete_product" product_id=0 %}`.replace('0', productId), {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('Product deleted successfully!', 'success');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showAlert(data.error || 'Error deleting product', 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('Error deleting product', 'danger');
-        });
+    // Get product name from the table row
+    const row = document.querySelector(`button[onclick="deleteProduct(${productId}, '${sku}')"]`).closest('tr');
+    const nameCell = row.querySelectorAll('td')[2]; // Name is in the 3rd column (index 2)
+    const productName = nameCell.querySelector('div').textContent;
+    
+    // Store current product info
+    currentProductToDelete = {
+        id: productId,
+        sku: sku,
+        name: productName
+    };
+    
+    // Update modal content
+    document.getElementById('deleteProductSku').textContent = sku;
+    document.getElementById('deleteProductName').textContent = productName;
+    
+    // Show the modal
+    new bootstrap.Modal(document.getElementById('deleteProductModal')).show();
+}
+
+function executeDeleteProduct() {
+    if (!currentProductToDelete) {
+        showAlert('Error: No product selected for deletion', 'danger');
+        return;
     }
+    
+    const productId = currentProductToDelete.id;
+    const sku = currentProductToDelete.sku;
+    
+    fetch(`{% url "product:delete_product" product_id=0 %}`.replace('0', productId), {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Product deleted successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('deleteProductModal')).hide();
+            
+            // Remove the row from UI immediately
+            const row = document.querySelector(`button[onclick="deleteProduct(${productId}, '${sku}')"]`).closest('tr');
+            row.style.transition = 'opacity 0.3s ease';
+            row.style.opacity = '0';
+            setTimeout(() => {
+                row.remove();
+                updateSelectedCount(); // Update selection count
+            }, 300);
+            
+            // Clear current product
+            currentProductToDelete = null;
+        } else {
+            showAlert(data.error || 'Error deleting product', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error deleting product', 'danger');
+    });
+}
+
+// Clear current product when modal is closed
+function clearCurrentProduct() {
+    currentProductToDelete = null;
 }
 
 // Delete Selected Confirmation
@@ -689,7 +969,24 @@ function executeDeleteSelected() {
         if (data.success) {
             showAlert(data.message, 'success');
             bootstrap.Modal.getInstance(document.getElementById('deleteSelectedModal')).hide();
-            setTimeout(() => location.reload(), 1000);
+            
+            // Remove selected rows from UI immediately
+            const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+            selectedCheckboxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                row.style.transition = 'opacity 0.3s ease';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                }, 300);
+            });
+            
+            // Reset selection
+            setTimeout(() => {
+                updateSelectedCount();
+                document.getElementById('selectAll').checked = false;
+                document.getElementById('selectAll').indeterminate = false;
+            }, 400);
         } else {
             showAlert(data.error || 'Error deleting selected products', 'danger');
         }
