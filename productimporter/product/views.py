@@ -166,6 +166,8 @@ def process_csv_file(csv_content, session_id):
         errors = []
         
         for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (after header)
+            processed_count += 1  # Count every row as processed, regardless of success/failure
+            
             try:
                 # Extract data with case-insensitive column matching
                 sku = row.get(fieldnames.get('sku', ''), '').strip()
@@ -177,6 +179,12 @@ def process_csv_file(csv_content, session_id):
                 if not sku or not name or not price_str:
                     error_count += 1
                     errors.append(f"Row {row_num}: Missing required fields (sku, name, price)")
+                    # Update progress for error rows too
+                    if processed_count % 100 == 0:
+                        session.processed_rows = processed_count
+                        session.success_count = success_count
+                        session.error_count = error_count
+                        session.save()
                     continue
                 
                 # Validate and convert price
@@ -187,6 +195,12 @@ def process_csv_file(csv_content, session_id):
                 except (InvalidOperation, ValueError) as e:
                     error_count += 1
                     errors.append(f"Row {row_num}: Invalid price '{price_str}': {str(e)}")
+                    # Update progress for error rows too
+                    if processed_count % 100 == 0:
+                        session.processed_rows = processed_count
+                        session.success_count = success_count
+                        session.error_count = error_count
+                        session.save()
                     continue
                 
                 # Create product data
@@ -206,8 +220,6 @@ def process_csv_file(csv_content, session_id):
                     success_count += batch_success
                     batch = []
                 
-                processed_count += 1
-                
                 # Update progress every 100 rows
                 if processed_count % 100 == 0:
                     session.processed_rows = processed_count
@@ -218,14 +230,20 @@ def process_csv_file(csv_content, session_id):
             except Exception as e:
                 error_count += 1
                 errors.append(f"Row {row_num}: Unexpected error: {str(e)}")
+                # Update progress for error rows too
+                if processed_count % 100 == 0:
+                    session.processed_rows = processed_count
+                    session.success_count = success_count
+                    session.error_count = error_count
+                    session.save()
         
         # Process remaining batch
         if batch:
             batch_success = process_batch(batch)
             success_count += batch_success
         
-        # Update final status
-        session.processed_rows = processed_count
+        # Update final status - ensure processed_rows matches total_rows
+        session.processed_rows = session.total_rows  # Set to total for 100% completion
         session.success_count = success_count
         session.error_count = error_count
         session.status = 'completed'

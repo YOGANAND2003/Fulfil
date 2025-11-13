@@ -331,7 +331,7 @@
                 <!-- Progress Bar -->
                 <div class="mb-4">
                     <div class="d-flex justify-content-between mb-3">
-                        <span class="text-muted fw-medium">Processing your file...</span>
+                        <span class="text-muted fw-medium" id="progressText">Processing your file...</span>
                         <span class="fw-bold text-primary" id="progressPercent" style="font-size: 1.1rem;">0%</span>
                     </div>
                     <div class="progress" style="height: 16px;">
@@ -642,7 +642,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update final status
             updateStatus('Import completed successfully!', 'success');
             
-            // Update progress to 100% and change color
+            // Update progress text and percentage
+            document.getElementById('progressText').textContent = 'Import completed!';
             document.getElementById('progressPercent').textContent = '100%';
             progressBar.style.width = '100%';
             progressBar.className = 'progress-bar bg-success';
@@ -664,7 +665,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             updateStatus('Import failed. Please check the error details below.', 'danger');
             
-            // Change progress bar to danger color
+            // Update progress text and change progress bar to danger color
+            document.getElementById('progressText').textContent = 'Import failed!';
             progressBar.className = 'progress-bar bg-danger';
             
             // Reset upload button
@@ -704,6 +706,10 @@ document.addEventListener('DOMContentLoaded', function() {
             clearInterval(progressInterval);
             progressInterval = null;
         }
+        
+        // Reset progress text and percentage
+        document.getElementById('progressText').textContent = 'Processing your file...';
+        document.getElementById('progressPercent').textContent = '0%';
         
         // Clear session and file selection
         currentSessionId = null;
