@@ -1,0 +1,523 @@
+{% extends 'product/base.html' %}
+
+{% block title %}Webhooks - Product Importer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="display-6 fw-bold text-primary mb-2">
+                    <i class="fas fa-link me-3"></i>
+                    Webhook Management
+                </h1>
+                <p class="text-muted mb-0">
+                    Total Webhooks: <span class="fw-bold">{{ total_webhooks|default:0 }}</span>
+                </p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createWebhookModal">
+                    <i class="fas fa-plus me-2"></i>
+                    Add Webhook
+                </button>
+            </div>
+        </div>
+
+        {% if page_obj.object_list %}
+            <!-- Webhooks Table -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 20%;">
+                                        <i class="fas fa-tag me-2"></i>Name
+                                    </th>
+                                    <th scope="col" style="width: 30%;">
+                                        <i class="fas fa-globe me-2"></i>URL
+                                    </th>
+                                    <th scope="col" style="width: 15%;">
+                                        <i class="fas fa-bolt me-2"></i>Event Type
+                                    </th>
+                                    <th scope="col" style="width: 10%;">
+                                        <i class="fas fa-toggle-on me-2"></i>Status
+                                    </th>
+                                    <th scope="col" style="width: 15%;">
+                                        <i class="fas fa-vial me-2"></i>Last Test
+                                    </th>
+                                    <th scope="col" style="width: 10%;">
+                                        <i class="fas fa-cogs me-2"></i>Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for webhook in page_obj %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ webhook.name }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 250px;" title="{{ webhook.url }}">
+                                            <code class="text-primary">{{ webhook.url }}</code>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ webhook.get_event_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        {% if webhook.is_active %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Active
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-times me-1"></i>Inactive
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if webhook.last_test_at %}
+                                            <div class="small">
+                                                {% if webhook.last_test_status == 'success' %}
+                                                    <span class="badge bg-success mb-1">Success</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger mb-1">Failed</span>
+                                                {% endif %}
+                                                <br>
+                                                <span class="text-muted">{{ webhook.last_test_at|date:"M d, H:i" }}</span>
+                                                {% if webhook.last_test_response_time %}
+                                                    <br><span class="text-muted">{{ webhook.last_test_response_time|floatformat:3 }}s</span>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted fst-italic">Never tested</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-success" 
+                                                    onclick="testWebhook({{ webhook.id }})" title="Test Webhook">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="editWebhook({{ webhook.id }})" title="Edit Webhook">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteWebhook({{ webhook.id }}, '{{ webhook.name }}')" title="Delete Webhook">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Webhook pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-link fa-4x text-muted"></i>
+                    </div>
+                    <h4 class="text-muted mb-3">No Webhooks Configured</h4>
+                    <p class="text-muted mb-4">
+                        Set up webhooks to receive notifications when products are created, updated, or deleted.
+                    </p>
+                    <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#createWebhookModal">
+                        <i class="fas fa-plus me-2"></i>
+                        Add Your First Webhook
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Webhook Modal -->
+<div class="modal fade" id="createWebhookModal" tabindex="-1" aria-labelledby="createWebhookModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createWebhookModalLabel">
+                    <i class="fas fa-plus me-2"></i>Add New Webhook
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createWebhookForm">
+                    <div class="mb-3">
+                        <label for="createName" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="createName" required placeholder="e.g., Slack Notifications">
+                    </div>
+                    <div class="mb-3">
+                        <label for="createUrl" class="form-label">Webhook URL <span class="text-danger">*</span></label>
+                        <input type="url" class="form-control" id="createUrl" required placeholder="https://hooks.slack.com/services/...">
+                    </div>
+                    <div class="mb-3">
+                        <label for="createEventType" class="form-label">Event Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="createEventType" required>
+                            <option value="">Select an event...</option>
+                            {% for value, label in event_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createSecretKey" class="form-label">Secret Key (Optional)</label>
+                        <input type="text" class="form-control" id="createSecretKey" placeholder="Optional secret for webhook verification">
+                        <div class="form-text">This will be sent as X-Webhook-Secret header</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="createActive" checked>
+                        <label class="form-check-label" for="createActive">Active Webhook</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="createWebhook()">
+                    <i class="fas fa-plus me-2"></i>Create Webhook
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Webhook Modal -->
+<div class="modal fade" id="editWebhookModal" tabindex="-1" aria-labelledby="editWebhookModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editWebhookModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Webhook
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editWebhookForm">
+                    <input type="hidden" id="editWebhookId">
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUrl" class="form-label">Webhook URL <span class="text-danger">*</span></label>
+                        <input type="url" class="form-control" id="editUrl" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventType" class="form-label">Event Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editEventType" required>
+                            {% for value, label in event_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editSecretKey" class="form-label">Secret Key (Optional)</label>
+                        <input type="text" class="form-control" id="editSecretKey">
+                        <div class="form-text">This will be sent as X-Webhook-Secret header</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editActive">
+                        <label class="form-check-label" for="editActive">Active Webhook</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateWebhook()">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth scrolling for pagination
+    const paginationLinks = document.querySelectorAll('.pagination .page-link');
+    paginationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.className = 'fas fa-spinner fa-spin';
+            }
+        });
+    });
+});
+
+// Create Webhook
+function createWebhook() {
+    const name = document.getElementById('createName').value.trim();
+    const url = document.getElementById('createUrl').value.trim();
+    const eventType = document.getElementById('createEventType').value;
+    const secretKey = document.getElementById('createSecretKey').value.trim();
+    const isActive = document.getElementById('createActive').checked;
+
+    if (!name || !url || !eventType) {
+        showAlert('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    const data = {
+        name: name,
+        url: url,
+        event_type: eventType,
+        secret_key: secretKey,
+        is_active: isActive
+    };
+
+    fetch('{% url "product:create_webhook" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Webhook created successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createWebhookModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error || 'Error creating webhook', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error creating webhook', 'danger');
+    });
+}
+
+// Edit Webhook
+function editWebhook(webhookId) {
+    // Find the webhook row to get current data
+    const row = document.querySelector(`button[onclick="editWebhook(${webhookId})"]`).closest('tr');
+    const cells = row.querySelectorAll('td');
+    
+    const name = cells[0].querySelector('div').textContent.trim();
+    const url = cells[1].querySelector('code').textContent.trim();
+    const eventType = cells[2].querySelector('.badge').textContent.trim();
+    const isActive = cells[3].querySelector('.badge').classList.contains('bg-success');
+
+    // Map display text back to value
+    const eventTypeMap = {
+        {% for value, label in event_choices %}
+            '{{ label }}': '{{ value }}',
+        {% endfor %}
+    };
+
+    // Populate edit form
+    document.getElementById('editWebhookId').value = webhookId;
+    document.getElementById('editName').value = name;
+    document.getElementById('editUrl').value = url;
+    document.getElementById('editEventType').value = eventTypeMap[eventType] || '';
+    document.getElementById('editSecretKey').value = '';
+    document.getElementById('editActive').checked = isActive;
+
+    // Show modal
+    new bootstrap.Modal(document.getElementById('editWebhookModal')).show();
+}
+
+// Update Webhook
+function updateWebhook() {
+    const webhookId = document.getElementById('editWebhookId').value;
+    const name = document.getElementById('editName').value.trim();
+    const url = document.getElementById('editUrl').value.trim();
+    const eventType = document.getElementById('editEventType').value;
+    const secretKey = document.getElementById('editSecretKey').value.trim();
+    const isActive = document.getElementById('editActive').checked;
+
+    if (!name || !url || !eventType) {
+        showAlert('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    const data = {
+        name: name,
+        url: url,
+        event_type: eventType,
+        secret_key: secretKey,
+        is_active: isActive
+    };
+
+    fetch(`{% url "product:update_webhook" webhook_id=0 %}`.replace('0', webhookId), {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Webhook updated successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editWebhookModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error || 'Error updating webhook', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error updating webhook', 'danger');
+    });
+}
+
+// Delete Webhook
+function deleteWebhook(webhookId, name) {
+    if (confirm(`Are you sure you want to delete webhook "${name}"? This action cannot be undone.`)) {
+        fetch(`{% url "product:delete_webhook" webhook_id=0 %}`.replace('0', webhookId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Webhook deleted successfully!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.error || 'Error deleting webhook', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error deleting webhook', 'danger');
+        });
+    }
+}
+
+// Test Webhook
+function testWebhook(webhookId) {
+    const button = document.querySelector(`button[onclick="testWebhook(${webhookId})"]`);
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+
+    fetch(`{% url "product:test_webhook" webhook_id=0 %}`.replace('0', webhookId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`Webhook test successful! Status: ${data.status_code}, Response time: ${data.response_time}s`, 'success');
+        } else {
+            showAlert(`Webhook test failed: ${data.error}`, 'danger');
+        }
+        setTimeout(() => location.reload(), 2000);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error testing webhook', 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalContent;
+        button.disabled = false;
+    });
+}
+
+// Utility Functions
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Clear form when create modal is closed
+document.getElementById('createWebhookModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('createWebhookForm').reset();
+    document.getElementById('createActive').checked = true;
+});
+</script>
+{% endblock %}

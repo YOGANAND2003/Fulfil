@@ -64,3 +64,38 @@ class ImportSession(models.Model):
         if self.total_rows == 0:
             return 0
         return round((self.processed_rows / self.total_rows) * 100, 2)
+
+
+class Webhook(models.Model):
+    """Webhook configuration for external notifications"""
+    EVENT_CHOICES = [
+        ('product_created', 'Product Created'),
+        ('product_updated', 'Product Updated'),
+        ('product_deleted', 'Product Deleted'),
+        ('bulk_import_completed', 'Bulk Import Completed'),
+        ('bulk_delete_completed', 'Bulk Delete Completed'),
+    ]
+    
+    name = models.CharField(max_length=100, help_text="Descriptive name for this webhook")
+    url = models.URLField(help_text="The endpoint URL to send webhook notifications")
+    event_type = models.CharField(max_length=30, choices=EVENT_CHOICES, help_text="Event that triggers this webhook")
+    is_active = models.BooleanField(default=True, help_text="Whether this webhook is active")
+    secret_key = models.CharField(max_length=255, blank=True, null=True, help_text="Optional secret key for webhook verification")
+    
+    # Test results
+    last_test_at = models.DateTimeField(blank=True, null=True)
+    last_test_status = models.CharField(max_length=20, blank=True, null=True)
+    last_test_response_time = models.FloatField(blank=True, null=True, help_text="Response time in seconds")
+    last_test_response_code = models.IntegerField(blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['event_type', 'is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.event_type})"

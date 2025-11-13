@@ -14,13 +14,57 @@
                 </h1>
                 <p class="text-muted mb-0">
                     Total Products: <span class="fw-bold">{{ total_products|default:0 }}</span>
+                    {% if filtered_count != total_products %}
+                        | Filtered: <span class="fw-bold">{{ filtered_count|default:0 }}</span>
+                    {% endif %}
                 </p>
             </div>
             <div>
-                <a href="{% url 'product:upload_page' %}" class="btn btn-primary">
+                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#createProductModal">
                     <i class="fas fa-plus me-2"></i>
-                    Import More Products
+                    Add Product
+                </button>
+                <button type="button" class="btn btn-warning me-2" id="deleteSelectedBtn" onclick="confirmDeleteSelected()" disabled>
+                    <i class="fas fa-trash me-2"></i>
+                    Delete Selected (<span id="selectedCount">0</span>)
+                </button>
+                <button type="button" class="btn btn-danger me-2" onclick="confirmBulkDelete()">
+                    <i class="fas fa-trash-alt me-2"></i>
+                    Delete All
+                </button>
+                <a href="{% url 'product:upload_page' %}" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>
+                    Import CSV
                 </a>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Search Products</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               value="{{ search_query }}" placeholder="Search by SKU, name, or description...">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">All Products</option>
+                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-search me-1"></i>Filter
+                        </button>
+                        <a href="{% url 'product:product_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -32,6 +76,14 @@
                         <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
+                                    <th scope="col" style="width: 5%;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                            <label class="form-check-label" for="selectAll">
+                                                <i class="fas fa-check-square"></i>
+                                            </label>
+                                        </div>
+                                    </th>
                                     <th scope="col" style="width: 15%;">
                                         <i class="fas fa-barcode me-2"></i>SKU
                                     </th>
@@ -47,14 +99,23 @@
                                     <th scope="col" style="width: 10%;">
                                         <i class="fas fa-toggle-on me-2"></i>Status
                                     </th>
-                                    <th scope="col" style="width: 15%;">
+                                    <th scope="col" style="width: 12%;">
                                         <i class="fas fa-clock me-2"></i>Updated
+                                    </th>
+                                    <th scope="col" style="width: 10%;">
+                                        <i class="fas fa-cogs me-2"></i>Actions
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for product in page_obj %}
                                 <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input product-checkbox" type="checkbox" 
+                                                   value="{{ product.id }}" onchange="updateSelectedCount()">
+                                        </div>
+                                    </td>
                                     <td>
                                         <code class="text-primary fw-bold">{{ product.sku }}</code>
                                     </td>
@@ -89,6 +150,18 @@
                                             {{ product.updated_at|date:"M d, Y" }}<br>
                                             {{ product.updated_at|time:"H:i" }}
                                         </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="editProduct({{ product.id }})" title="Edit Product">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteProduct({{ product.id }}, '{{ product.sku }}')" title="Delete Product">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -201,6 +274,157 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Create Product Modal -->
+<div class="modal fade" id="createProductModal" tabindex="-1" aria-labelledby="createProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createProductModalLabel">
+                    <i class="fas fa-plus me-2"></i>Add New Product
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createProductForm">
+                    <div class="mb-3">
+                        <label for="createSku" class="form-label">SKU <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="createSku" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createName" class="form-label">Product Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="createName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createPrice" class="form-label">Price <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="createPrice" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="createDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="createActive" checked>
+                        <label class="form-check-label" for="createActive">Active Product</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="createProduct()">
+                    <i class="fas fa-plus me-2"></i>Create Product
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProductModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Product
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editProductForm">
+                    <input type="hidden" id="editProductId">
+                    <div class="mb-3">
+                        <label for="editSku" class="form-label">SKU <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editSku" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Product Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPrice" class="form-label">Price <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="editPrice" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editActive">
+                        <label class="form-check-label" for="editActive">Active Product</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateProduct()">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Selected Confirmation Modal -->
+<div class="modal fade" id="deleteSelectedModal" tabindex="-1" aria-labelledby="deleteSelectedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="deleteSelectedModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete Selected
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <p>Are you sure you want to delete <strong><span id="selectedDeleteCount">0</span> selected products</strong>?</p>
+                <p class="text-muted">This will permanently remove the selected products from the database.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="executeDeleteSelected()">
+                    <i class="fas fa-trash me-2"></i>Yes, Delete Selected Products
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="bulkDeleteModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Bulk Delete
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <p>Are you sure you want to delete <strong>ALL {{ total_products }} products</strong>?</p>
+                <p class="text-muted">This will permanently remove all products from the database.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="executeBulkDelete()">
+                    <i class="fas fa-trash me-2"></i>Yes, Delete All Products
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -225,6 +449,327 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Initialize selection count
+    updateSelectedCount();
+
+    // Auto-submit search form on input change with debounce
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.form.submit();
+            }, 500); // 500ms debounce
+        });
+    }
+
+    // Auto-submit on status filter change
+    const statusSelect = document.getElementById('status');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            this.form.submit();
+        });
+    }
+});
+
+// Selection Management Functions
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    
+    productCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+    const count = selectedCheckboxes.length;
+    const totalCheckboxes = document.querySelectorAll('.product-checkbox');
+    
+    // Update counter
+    document.getElementById('selectedCount').textContent = count;
+    
+    // Enable/disable delete button
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    deleteBtn.disabled = count === 0;
+    
+    // Update select all checkbox state
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (count === 0) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (count === totalCheckboxes.length) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else {
+        selectAllCheckbox.indeterminate = true;
+        selectAllCheckbox.checked = false;
+    }
+}
+
+// Create Product
+function createProduct() {
+    const sku = document.getElementById('createSku').value.trim();
+    const name = document.getElementById('createName').value.trim();
+    const price = document.getElementById('createPrice').value.trim();
+    const description = document.getElementById('createDescription').value.trim();
+    const active = document.getElementById('createActive').checked;
+
+    if (!sku || !name || !price) {
+        showAlert('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    const data = {
+        sku: sku,
+        name: name,
+        price: price,
+        description: description,
+        active: active
+    };
+
+    fetch('{% url "product:create_product" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Product created successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createProductModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error || 'Error creating product', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error creating product', 'danger');
+    });
+}
+
+// Edit Product
+function editProduct(productId) {
+    // Find the product row to get current data
+    const row = document.querySelector(`button[onclick="editProduct(${productId})"]`).closest('tr');
+    const cells = row.querySelectorAll('td');
+    
+    const sku = cells[0].querySelector('code').textContent;
+    const name = cells[1].querySelector('div').textContent;
+    const price = cells[2].querySelector('span').textContent.replace('$', '');
+    const description = cells[3].textContent.trim();
+    const active = cells[4].querySelector('.badge').classList.contains('bg-success');
+
+    // Populate edit form
+    document.getElementById('editProductId').value = productId;
+    document.getElementById('editSku').value = sku;
+    document.getElementById('editName').value = name;
+    document.getElementById('editPrice').value = price;
+    document.getElementById('editDescription').value = description === 'No description' ? '' : description;
+    document.getElementById('editActive').checked = active;
+
+    // Show modal
+    new bootstrap.Modal(document.getElementById('editProductModal')).show();
+}
+
+// Update Product
+function updateProduct() {
+    const productId = document.getElementById('editProductId').value;
+    const sku = document.getElementById('editSku').value.trim();
+    const name = document.getElementById('editName').value.trim();
+    const price = document.getElementById('editPrice').value.trim();
+    const description = document.getElementById('editDescription').value.trim();
+    const active = document.getElementById('editActive').checked;
+
+    if (!sku || !name || !price) {
+        showAlert('Please fill in all required fields', 'danger');
+        return;
+    }
+
+    const data = {
+        sku: sku,
+        name: name,
+        price: price,
+        description: description,
+        active: active
+    };
+
+    fetch(`{% url "product:update_product" product_id=0 %}`.replace('0', productId), {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Product updated successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error || 'Error updating product', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error updating product', 'danger');
+    });
+}
+
+// Delete Product
+function deleteProduct(productId, sku) {
+    if (confirm(`Are you sure you want to delete product "${sku}"? This action cannot be undone.`)) {
+        fetch(`{% url "product:delete_product" product_id=0 %}`.replace('0', productId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Product deleted successfully!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.error || 'Error deleting product', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error deleting product', 'danger');
+        });
+    }
+}
+
+// Delete Selected Confirmation
+function confirmDeleteSelected() {
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+    const count = selectedCheckboxes.length;
+    
+    if (count === 0) {
+        showAlert('Please select products to delete', 'warning');
+        return;
+    }
+    
+    document.getElementById('selectedDeleteCount').textContent = count;
+    new bootstrap.Modal(document.getElementById('deleteSelectedModal')).show();
+}
+
+// Execute Delete Selected
+function executeDeleteSelected() {
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+    const productIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+    
+    if (productIds.length === 0) {
+        showAlert('No products selected', 'warning');
+        return;
+    }
+
+    fetch('{% url "product:delete_selected_products" %}', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ product_ids: productIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('deleteSelectedModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error || 'Error deleting selected products', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error deleting selected products', 'danger');
+    });
+}
+
+// Bulk Delete Confirmation
+function confirmBulkDelete() {
+    new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show();
+}
+
+// Execute Bulk Delete
+function executeBulkDelete() {
+    fetch('{% url "product:bulk_delete_products" %}', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ confirm: true })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.error || 'Error deleting products', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error deleting products', 'danger');
+    });
+}
+
+// Utility Functions
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Clear form when create modal is closed
+document.getElementById('createProductModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('createProductForm').reset();
+    document.getElementById('createActive').checked = true;
 });
 </script>
 {% endblock %}

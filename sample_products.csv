@@ -1,6 +1,6 @@
 sku,name,price,description
 LAPTOP001,Dell XPS 13 Laptop,999.99,Ultra-portable laptop with Intel Core i7 processor
-PHONE002,iPhone 14 Pro,1099.00,Latest iPhone with advanced camera system
+PHONE002,iPhone 14 Pro,1099,Latest iPhone with advanced camera system
 TABLET003,iPad Air 5th Gen,599.99,Powerful tablet with M1 chip
 HEADPHONE004,Sony WH-1000XM4,349.99,Noise-canceling wireless headphones
 KEYBOARD005,Logitech MX Keys,99.99,Advanced wireless illuminated keyboard
@@ -27,12 +27,12 @@ WEBCAM025,Logitech C920 HD Pro,79.99,Full HD webcam for video conferencing
 MIC026,Blue Yeti USB Microphone,99.99,Professional USB microphone for streaming
 LIGHT027,Ring Light with Tripod,39.99,LED ring light for photography and video calls
 DESK028,Standing Desk Converter,199.99,Adjustable standing desk converter for health
-CHAIR029,Herman Miller Aeron,1395.00,Ergonomic office chair with advanced lumbar support
+CHAIR029,Herman Miller Aeron,1395,Ergonomic office chair with advanced lumbar support
 BAG030,Peak Design Everyday Backpack,279.95,Premium camera and laptop backpack
 DRIVE031,WD My Passport 4TB,119.99,Portable external hard drive with password protection
 HUB032,CalDigit TS3 Plus,249.99,Thunderbolt 3 dock with multiple ports
-ADAPTER033,Apple USB-C Digital AV,69.00,Multiport adapter for MacBook connectivity
-SLEEVE034,Bellroy Laptop Sleeve,89.00,Premium leather laptop sleeve with magnetic closure
+ADAPTER033,Apple USB-C Digital AV,69,Multiport adapter for MacBook connectivity
+SLEEVE034,Bellroy Laptop Sleeve,89,Premium leather laptop sleeve with magnetic closure
 PAD035,SteelSeries QcK Gaming,24.99,Large gaming mouse pad with optimized surface
 CONTROLLER036,Xbox Wireless Controller,59.99,Wireless gaming controller for Xbox and PC
 HEADSET037,SteelSeries Arctis 7,149.99,Wireless gaming headset with DTS surround sound
