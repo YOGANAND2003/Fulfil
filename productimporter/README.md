@@ -210,15 +210,4 @@ Webhook payloads include event type, timestamp, and relevant data.
 - **User Feedback**: Clear error messages and recovery suggestions
 - **Retry Mechanisms**: Built-in retry for failed operations
 
-## 🚀 Production Deployment
-
-For production deployment:
-1. Use PostgreSQL or MySQL instead of SQLite
-2. Configure proper static file serving
-3. Set up Redis for background task processing
-4. Enable HTTPS and security headers
-5. Configure proper logging and monitoring
-
-## 📝 License
-
-This project is built for Acme Inc. as a functional demonstration of scalable CSV import capabilities with modern web technologies.
+Developed by Yoganand
