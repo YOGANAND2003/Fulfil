@@ -87,14 +87,12 @@
                 <div class="d-flex align-items-center gap-4">
                     <div class="d-flex align-items-center">
                         <div class="stats-indicator success me-2"></div>
-                        <span class="text-muted">Total: <span class="fw-bold text-dark">{{ total_products|default:0 }}</span></span>
+                        <span class="text-muted">Total: <span class="fw-bold text-dark" id="headerTotalCount">{{ total_products|default:0 }}</span></span>
                     </div>
-                    {% if filtered_count != total_products %}
-                        <div class="d-flex align-items-center">
-                            <div class="stats-indicator info me-2"></div>
-                            <span class="text-muted">Filtered: <span class="fw-bold text-dark">{{ filtered_count|default:0 }}</span></span>
-                        </div>
-                    {% endif %}
+                    <div class="d-flex align-items-center" id="headerFilteredSection" {% if filtered_count == total_products %}style="display: none !important;"{% endif %}>
+                        <div class="stats-indicator info me-2"></div>
+                        <span class="text-muted">Filtered: <span class="fw-bold text-dark" id="headerFilteredCount">{{ filtered_count|default:0 }}</span></span>
+                    </div>
                 </div>
             </div>
             <div class="action-buttons">
@@ -297,7 +295,7 @@
             <div class="text-center text-muted mt-3">
                 <small>
                     Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} 
-                    of {{ page_obj.paginator.count }} products
+                    of <span id="paginationTotalCount">{{ page_obj.paginator.count }}</span> products
                 </small>
             </div>
             {% endif %}
@@ -399,7 +397,7 @@
 <div class="row mt-4">
     <div class="col-md-3">
         <div class="stats-card success">
-            <h4 class="mb-1">{{ total_products|default:0 }}</h4>
+            <h4 class="mb-1" id="statsTotalCount">{{ total_products|default:0 }}</h4>
             <small class="text-muted">Total Products</small>
         </div>
     </div>
@@ -562,7 +560,7 @@
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <strong>Warning:</strong> This action cannot be undone!
                 </div>
-                <p>Are you sure you want to delete <strong>ALL {{ total_products }} products</strong>?</p>
+                <p>Are you sure you want to delete <strong>ALL <span id="bulkDeleteTotalCount">{{ total_products }}</span> products</strong>?</p>
                 <p class="text-muted">This will permanently remove all products from the database.</p>
             </div>
             <div class="modal-footer">
@@ -772,8 +770,13 @@ function createProduct() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('Product created successfully! Refresh the page to see the new product.', 'success');
+            showAlert('Product created successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('createProductModal')).hide();
+            
+            // Update counts immediately after successful creation
+            console.log('About to call updateProductCounts after product creation'); // Debug log
+            updateProductCounts(); // Update all product counts
+            
             // Clear the form
             document.getElementById('createProductForm').reset();
             document.getElementById('createActive').checked = true;
@@ -906,7 +909,11 @@ function executeDeleteProduct() {
             showAlert('Product deleted successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('deleteProductModal')).hide();
             
-            // Remove the row from UI immediately
+            // Update counts immediately after successful deletion
+            console.log('About to call updateProductCounts after individual delete'); // Debug log
+            updateProductCounts(); // Update all product counts
+            
+            // Remove the row from UI with animation
             const row = document.querySelector(`button[onclick="deleteProduct(${productId}, '${sku}')"]`).closest('tr');
             row.style.transition = 'opacity 0.3s ease';
             row.style.opacity = '0';
@@ -930,6 +937,91 @@ function executeDeleteProduct() {
 // Clear current product when modal is closed
 function clearCurrentProduct() {
     currentProductToDelete = null;
+}
+
+// Update product counts throughout the page
+function updateProductCounts() {
+    console.log('updateProductCounts called'); // Debug log
+    
+    const currentSearch = document.getElementById('search').value;
+    const currentStatus = document.getElementById('status').value;
+    
+    const params = new URLSearchParams();
+    if (currentSearch) params.append('search', currentSearch);
+    if (currentStatus && currentStatus !== 'all') params.append('status', currentStatus);
+    
+    const url = `{% url "product:get_product_counts" %}?${params.toString()}`;
+    console.log('Fetching counts from:', url); // Debug log
+    
+    fetch(url)
+        .then(response => {
+            console.log('Response status:', response.status); // Debug log
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Received count data:', data); // Debug log
+            
+            // Update header counts
+            const headerTotalCount = document.getElementById('headerTotalCount');
+            const headerFilteredCount = document.getElementById('headerFilteredCount');
+            const headerFilteredSection = document.getElementById('headerFilteredSection');
+            
+            if (headerTotalCount) {
+                console.log('Updating headerTotalCount from', headerTotalCount.textContent, 'to', data.total_products);
+                headerTotalCount.textContent = data.total_products.toLocaleString();
+            } else {
+                console.log('headerTotalCount element not found');
+            }
+            
+            if (headerFilteredCount) {
+                console.log('Updating headerFilteredCount from', headerFilteredCount.textContent, 'to', data.filtered_count);
+                headerFilteredCount.textContent = data.filtered_count.toLocaleString();
+            }
+            
+            // Show/hide filtered section
+            if (headerFilteredSection) {
+                if (data.filtered_count !== data.total_products) {
+                    headerFilteredSection.style.display = 'flex';
+                } else {
+                    headerFilteredSection.style.display = 'none';
+                }
+            }
+            
+            // Update pagination count
+            const paginationTotalCount = document.getElementById('paginationTotalCount');
+            if (paginationTotalCount) {
+                console.log('Updating paginationTotalCount from', paginationTotalCount.textContent, 'to', data.filtered_count);
+                paginationTotalCount.textContent = data.filtered_count.toLocaleString();
+            }
+            
+            // Update stats card
+            const statsTotalCount = document.getElementById('statsTotalCount');
+            if (statsTotalCount) {
+                console.log('Updating statsTotalCount from', statsTotalCount.textContent, 'to', data.total_products);
+                statsTotalCount.textContent = data.total_products.toLocaleString();
+            }
+            
+            // Update bulk delete modal count
+            const bulkDeleteTotalCount = document.getElementById('bulkDeleteTotalCount');
+            if (bulkDeleteTotalCount) {
+                console.log('Updating bulkDeleteTotalCount from', bulkDeleteTotalCount.textContent, 'to', data.total_products);
+                bulkDeleteTotalCount.textContent = data.total_products.toLocaleString();
+            }
+            
+            console.log('Count update completed successfully');
+        })
+        .catch(error => {
+            console.error('Error updating product counts:', error);
+        });
+}
+
+// Test function to manually check count updates (can be called from browser console)
+function testCountUpdate() {
+    console.log('Testing count update manually...');
+    updateProductCounts();
 }
 
 // Delete Selected Confirmation
@@ -970,7 +1062,11 @@ function executeDeleteSelected() {
             showAlert(data.message, 'success');
             bootstrap.Modal.getInstance(document.getElementById('deleteSelectedModal')).hide();
             
-            // Remove selected rows from UI immediately
+            // Update counts immediately after successful deletion
+            console.log('About to call updateProductCounts after selected delete'); // Debug log
+            updateProductCounts(); // Update all product counts
+            
+            // Remove selected rows from UI with animation
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             selectedCheckboxes.forEach(checkbox => {
                 const row = checkbox.closest('tr');
@@ -1017,6 +1113,7 @@ function executeBulkDelete() {
         if (data.success) {
             showAlert(data.message, 'success');
             bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide();
+            // Reload page after bulk delete since all products are removed
             setTimeout(() => location.reload(), 1000);
         } else {
             showAlert(data.error || 'Error deleting products', 'danger');

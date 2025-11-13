@@ -508,6 +508,42 @@ def bulk_delete_products(request):
         return JsonResponse({'error': f'Error deleting products: {str(e)}'}, status=500)
 
 
+@require_http_methods(["GET"])
+def get_product_counts(request):
+    """Get current product counts for dynamic updates"""
+    print(f"get_product_counts called with params: {request.GET}")  # Debug log
+    
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', 'all')
+    
+    # Get all products
+    products = Product.objects.all()
+    
+    # Apply search filter if provided
+    if search_query:
+        products = products.filter(
+            Q(sku__icontains=search_query) |
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    # Apply status filter if provided
+    if status_filter == 'active':
+        products = products.filter(active=True)
+    elif status_filter == 'inactive':
+        products = products.filter(active=False)
+    
+    counts = {
+        'total_products': Product.objects.count(),
+        'filtered_count': products.count(),
+        'active_count': Product.objects.filter(active=True).count(),
+        'inactive_count': Product.objects.filter(active=False).count(),
+    }
+    
+    print(f"Returning counts: {counts}")  # Debug log
+    return JsonResponse(counts)
+
+
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_selected_products(request):
